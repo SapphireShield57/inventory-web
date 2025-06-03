@@ -1,38 +1,83 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
+import { Link } from "react-router-dom";
 
 const DashboardPage = () => {
   const [products, setProducts] = useState([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [minPrice, setMinPrice] = useState('');
-  const [maxPrice, setMaxPrice] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [minPrice, setMinPrice] = useState("");
+  const [maxPrice, setMaxPrice] = useState("");
+  const [editedQuantities, setEditedQuantities] = useState({});
+  const [selectedCategory, setSelectedCategory] = useState("");
+
   const navigate = useNavigate();
+
+  const categoryMap = {
+    "Fastening Tools": ["screwdriver", "screw", "riveter", "hex", "allen"],
+    "Striking Tools": ["hammer", "mallet", "pry bar", "chisel"],
+    "Finishing Tools": ["sanding", "sharpening", "brush", "steel file"],
+  };
 
   useEffect(() => {
     axios
-      .get('https://backend-bjq5.onrender.com/inventory/product/')
+      .get("https://backend-bjq5.onrender.com/inventory/product/")
       .then((response) => setProducts(response.data))
-      .catch((error) => console.error('Error fetching products:', error));
+      .catch((error) => console.error("Error fetching products:", error));
   }, []);
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/');
+    localStorage.removeItem("token");
+    navigate("/");
+  };
+
+  const handleQuantityChange = (id, newQuantity) => {
+    setEditedQuantities((prev) => ({
+      ...prev,
+      [id]: newQuantity,
+    }));
+  };
+
+  const handleConfirmQuantities = () => {
+    const updates = Object.entries(editedQuantities).map(([id, quantity]) => {
+      return axios.put(`https://backend-bjq5.onrender.com/inventory/product/id/${id}/`, {
+        quantity,
+      });
+    });
+  
+    Promise.all(updates)
+      .then(() => {
+        window.location.reload();
+      })
+      .catch((error) => {
+        console.error("Update failed:", error.response || error.message);
+        alert("Failed to update quantities.");
+      });
+  };  
+
+  const getCategory = (name) => {
+    const lower = name.toLowerCase();
+    for (const [category, keywords] of Object.entries(categoryMap)) {
+      if (keywords.some((kw) => lower.includes(kw))) {
+        return category;
+      }
+    }
+    return "Other";
   };
 
   const filteredProducts = products.filter((product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesMin = minPrice === '' || product.price >= parseFloat(minPrice);
-    const matchesMax = maxPrice === '' || product.price <= parseFloat(maxPrice);
-    return matchesSearch && matchesMin && matchesMax;
+    const matchesMin = minPrice === "" || product.price >= parseFloat(minPrice);
+    const matchesMax = maxPrice === "" || product.price <= parseFloat(maxPrice);
+    const category = getCategory(product.name);
+    const matchesCategory = !selectedCategory || selectedCategory === category;
+    return matchesSearch && matchesMin && matchesMax && matchesCategory;
   });
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-black text-3xl font-bold">Dashboard</h1>
         <div className="flex gap-4">
           <Link to="/add-product">
             <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
@@ -48,7 +93,7 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 md:grid-cols-3 mb-6">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-4 mb-6">
         <input
           type="text"
           placeholder="Search by name"
@@ -70,24 +115,70 @@ const DashboardPage = () => {
           value={maxPrice}
           onChange={(e) => setMaxPrice(e.target.value)}
         />
+        <select
+          className="p-2 border rounded"
+          value={selectedCategory}
+          onChange={(e) => setSelectedCategory(e.target.value)}
+        >
+          <option value="">All Categories</option>
+          <option value="Fastening Tools">Fastening Tools</option>
+          <option value="Striking Tools">Striking Tools</option>
+          <option value="Finishing Tools">Finishing Tools</option>
+        </select>
       </div>
 
       {filteredProducts.length === 0 ? (
         <p className="text-gray-600">No matching products.</p>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-          {filteredProducts.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white p-4 rounded-xl shadow cursor-pointer hover:shadow-lg transition"
-              onClick={() => navigate(`/product/id/${product.id}`)} // FIXED ID
-            >
-              <h2 className="text-black text-xl font-semibold mb-1">{product.name}</h2>
-              <p className="text-sm text-gray-700">Price: P{product.price}</p>
-              <p className="text-sm text-gray-600 truncate">{product.description}</p>
-              <p className="text-xs text-gray-400 mt-1">Code: {product.qr_code}</p>
+        <div className="overflow-x-auto">
+          <table className="min-w-full bg-white border rounded-xl overflow-hidden">
+            <thead>
+              <tr className="bg-gray-800 text-white">
+                <th className="text-left px-4 py-2">Name</th>
+                <th className="text-left px-4 py-2">Description</th>
+                <th className="text-left px-4 py-2">Quantity</th>
+                <th className="text-left px-4 py-2">QR</th>
+                <th className="text-left px-4 py-2">Price</th>
+                <th className="text-left px-4 py-2">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProducts.map((product) => (
+                <tr key={product.id} className="border-t hover:bg-gray-100">
+                  <td className="text-black px-4 py-2">{product.name}</td>
+                  <td className="text-black px-4 py-2">{product.description}</td>
+                  <td className="px-4 py-2">
+                    <input
+                      type="number"
+                      value={editedQuantities[product.id] ?? product.quantity}
+                      onChange={(e) => handleQuantityChange(product.id, e.target.value)}
+                      className="w-20 px-2 py-1 border rounded"
+                    />
+                  </td>
+                  <td className="text-black px-4 py-2">{product.qr_code}</td>
+                  <td className="text-black px-4 py-2">P{product.price}</td>
+                  <td className="px-4 py-2">
+                    <button
+                      onClick={() => navigate(`/product/id/${product.id}`)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {Object.keys(editedQuantities).length > 0 && (
+            <div className="flex justify-end mt-4">
+              <button
+                onClick={handleConfirmQuantities}
+                className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+              >
+                Confirm Quantity Changes
+              </button>
             </div>
-          ))}
+          )}
         </div>
       )}
     </div>

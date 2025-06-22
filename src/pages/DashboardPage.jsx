@@ -65,14 +65,16 @@ const DashboardPage = () => {
     return "Other";
   };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesMin = minPrice === "" || product.price >= parseFloat(minPrice);
-    const matchesMax = maxPrice === "" || product.price <= parseFloat(maxPrice);
-    const category = getCategory(product.name);
-    const matchesCategory = !selectedCategory || selectedCategory === category;
-    return matchesSearch && matchesMin && matchesMax && matchesCategory;
-  });
+  const filteredProducts = [...products]
+    .filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesMin = minPrice === "" || product.price >= parseFloat(minPrice);
+      const matchesMax = maxPrice === "" || product.price <= parseFloat(maxPrice);
+      const category = getCategory(product.name);
+      const matchesCategory = !selectedCategory || selectedCategory === category;
+      return matchesSearch && matchesMin && matchesMax && matchesCategory;
+    })
+    .sort((a, b) => parseInt(a.qr_code) - parseInt(b.qr_code)); // numeric sort
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">

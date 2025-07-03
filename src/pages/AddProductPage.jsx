@@ -23,16 +23,28 @@ const AddProductPage = () => {
     e.preventDefault();
     setError('');
     setLoading(true);
-
+  
     try {
+      // Fetch current total stocks
+      const res = await fetch('https://backend-bjq5.onrender.com/inventory/product/');
+      const products = await res.json();
+      const currentTotal = products.reduce((sum, p) => sum + p.quantity, 0);
+      const adding = parseInt(form.quantity);
+  
+      if (currentTotal + adding > 2000) {
+        setError('Cannot add item/s. Exceeding the Limit.');
+        setLoading(false);
+        return;
+      }
+  
       const response = await fetch('https://backend-bjq5.onrender.com/inventory/product/', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form),
       });
-
+  
       const data = await response.json();
-
+  
       if (response.ok) {
         navigate('/dashboard');
       } else {
@@ -44,6 +56,7 @@ const AddProductPage = () => {
       setLoading(false);
     }
   };
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 px-4">

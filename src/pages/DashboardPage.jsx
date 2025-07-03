@@ -1,3 +1,4 @@
+// Keep the top imports the same
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -10,6 +11,7 @@ const DashboardPage = () => {
   const [maxPrice, setMaxPrice] = useState("");
   const [editedQuantities, setEditedQuantities] = useState({});
   const [selectedCategory, setSelectedCategory] = useState("");
+  const [totalStock, setTotalStock] = useState(0);
 
   const navigate = useNavigate();
 
@@ -19,11 +21,19 @@ const DashboardPage = () => {
     "Finishing Tools": ["sanding", "sharpening", "brush", "steel file"],
   };
 
-  useEffect(() => {
+  const fetchProducts = () => {
     axios
       .get("https://backend-bjq5.onrender.com/inventory/product/")
-      .then((response) => setProducts(response.data))
+      .then((response) => {
+        setProducts(response.data);
+        const total = response.data.reduce((acc, item) => acc + item.quantity, 0);
+        setTotalStock(total);
+      })
       .catch((error) => console.error("Error fetching products:", error));
+  };
+
+  useEffect(() => {
+    fetchProducts();
   }, []);
 
   const handleLogout = () => {
@@ -39,28 +49,27 @@ const DashboardPage = () => {
   };
 
   const handleConfirmQuantities = () => {
-    const updates = Object.entries(editedQuantities).map(([id, quantity]) => {
-      return axios.put(`https://backend-bjq5.onrender.com/inventory/product/id/${id}/`, {
+    const updates = Object.entries(editedQuantities).map(([id, quantity]) =>
+      axios.put(`https://backend-bjq5.onrender.com/inventory/product/id/${id}/`, {
         quantity,
-      });
-    });
-  
+      })
+    );
+
     Promise.all(updates)
       .then(() => {
-        window.location.reload();
+        fetchProducts();
+        setEditedQuantities({});
       })
       .catch((error) => {
         console.error("Update failed:", error.response || error.message);
         alert("Failed to update quantities.");
       });
-  };  
+  };
 
   const getCategory = (name) => {
     const lower = name.toLowerCase();
     for (const [category, keywords] of Object.entries(categoryMap)) {
-      if (keywords.some((kw) => lower.includes(kw))) {
-        return category;
-      }
+      if (keywords.some((kw) => lower.includes(kw))) return category;
     }
     return "Other";
   };
@@ -70,11 +79,11 @@ const DashboardPage = () => {
       const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase());
       const matchesMin = minPrice === "" || product.price >= parseFloat(minPrice);
       const matchesMax = maxPrice === "" || product.price <= parseFloat(maxPrice);
-      const category = getCategory(product.name);
-      const matchesCategory = !selectedCategory || selectedCategory === category;
+      const matchesCategory =
+        !selectedCategory || selectedCategory === getCategory(product.name);
       return matchesSearch && matchesMin && matchesMax && matchesCategory;
     })
-    .sort((a, b) => parseInt(a.qr_code) - parseInt(b.qr_code)); // numeric sort
+    .sort((a, b) => parseInt(a.qr_code) - parseInt(b.qr_code));
 
   return (
     <div className="min-h-screen bg-gray-100 p-6">
@@ -93,6 +102,10 @@ const DashboardPage = () => {
             Logout
           </button>
         </div>
+      </div>
+
+      <div className="text-xl font-semibold mb-4 text-gray-700">
+        Total Stocks: <span className="text-black">{totalStock}</span>
       </div>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-4 mb-6">
@@ -171,6 +184,7 @@ const DashboardPage = () => {
               ))}
             </tbody>
           </table>
+
           {Object.keys(editedQuantities).length > 0 && (
             <div className="flex justify-end mt-4">
               <button

@@ -11,7 +11,7 @@ function ProductHistoryModal({ productId, onClose }) {
   }, [productId]);
 
   return (
-    <div className="modal" className="text-black font-bold">
+    <div className="modal text-black font-bold">
       <h2>Stock History</h2>
       <button onClick={onClose}>Close</button>
       <table>

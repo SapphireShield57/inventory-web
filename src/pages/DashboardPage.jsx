@@ -50,12 +50,25 @@ const DashboardPage = () => {
   };
 
   const handleConfirmQuantities = () => {
+  // Calculate new total stock if changes are applied
+    let newTotal = totalStock;
+    for (const id in editedQuantities) {
+      const original = products.find(p => p.id === parseInt(id))?.quantity || 0;
+      const edited = parseInt(editedQuantities[id]);
+      newTotal = newTotal - original + edited;
+    }
+  
+    if (newTotal > 2000) {
+      alert("Cannot update quantities. Exceeding the 2000 item limit.");
+      return;
+    }
+  
     const updates = Object.entries(editedQuantities).map(([id, quantity]) =>
       axios.put(`https://backend-bjq5.onrender.com/inventory/product/id/${id}/`, {
         quantity,
       })
     );
-
+  
     Promise.all(updates)
       .then(() => {
         fetchProducts();
@@ -66,6 +79,7 @@ const DashboardPage = () => {
         alert("Failed to update quantities.");
       });
   };
+
 
   const getCategory = (name) => {
     const lower = name.toLowerCase();
@@ -119,7 +133,7 @@ const DashboardPage = () => {
       </div>
 
       <div className="text-xl font-semibold mb-4 text-gray-700">
-        Total Stocks: <span className="text-black">{totalStock}</span>
+        Total Stocks: <span className="text-black">{totalStock}/2000</span>
       </div>
 
       <div className="grid gap-4 grid-cols-1 md:grid-cols-4 mb-6">

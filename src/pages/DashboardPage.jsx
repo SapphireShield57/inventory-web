@@ -11,7 +11,7 @@ const DashboardPage = () => {
   const [editedQuantities, setEditedQuantities] = useState({});
   const [selectedCategory, setSelectedCategory] = useState("");
   const [totalStock, setTotalStock] = useState(0);
-  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [selectedProductQr, setSelectedProductQr] = useState(null);
   const [stockHistory, setStockHistory] = useState([]);
 
   const navigate = useNavigate();
@@ -50,25 +50,24 @@ const DashboardPage = () => {
   };
 
   const handleConfirmQuantities = () => {
-  // Calculate new total stock if changes are applied
     let newTotal = totalStock;
     for (const id in editedQuantities) {
-      const original = products.find(p => p.id === parseInt(id))?.quantity || 0;
+      const original = products.find((p) => p.id === parseInt(id))?.quantity || 0;
       const edited = parseInt(editedQuantities[id]);
       newTotal = newTotal - original + edited;
     }
-  
+
     if (newTotal > 2000) {
       alert("Cannot update quantities. Exceeding the 2000 item limit.");
       return;
     }
-  
+
     const updates = Object.entries(editedQuantities).map(([id, quantity]) =>
       axios.put(`https://backend-bjq5.onrender.com/inventory/product/id/${id}/`, {
         quantity,
       })
     );
-  
+
     Promise.all(updates)
       .then(() => {
         fetchProducts();
@@ -80,7 +79,6 @@ const DashboardPage = () => {
       });
   };
 
-
   const getCategory = (name) => {
     const lower = name.toLowerCase();
     for (const [category, keywords] of Object.entries(categoryMap)) {
@@ -89,12 +87,12 @@ const DashboardPage = () => {
     return "Other";
   };
 
-  const handleViewHistory = (productId) => {
+  const handleViewHistory = (qrCode) => {
     axios
-      .get(`https://backend-bjq5.onrender.com/inventory/product/${productId}/history/`)
+      .get(`https://backend-bjq5.onrender.com/inventory/product/${qrCode}/history/`)
       .then((res) => {
         setStockHistory(res.data);
-        setSelectedProductId(productId);
+        setSelectedProductQr(qrCode);
       })
       .catch((err) => {
         console.error("Failed to fetch history", err);
@@ -114,9 +112,9 @@ const DashboardPage = () => {
     .sort((a, b) => parseInt(a.qr_code) - parseInt(b.qr_code));
 
   return (
-    <div className="min-h-screen bg-gray-100 p-6">
+    <div className="min-h-screen bg-gray-100 p-6 text-black">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-black text-3xl font-bold">Dashboard</h1>
+        <h1 className="text-3xl font-bold">Dashboard</h1>
         <div className="flex gap-4">
           <Link to="/add-product">
             <button className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700">
@@ -132,7 +130,7 @@ const DashboardPage = () => {
         </div>
       </div>
 
-      <div className="text-xl font-semibold mb-4 text-gray-700">
+      <div className="text-xl font-semibold mb-4">
         Total Stocks: <span className="text-black">{totalStock}/2000</span>
       </div>
 
@@ -174,7 +172,7 @@ const DashboardPage = () => {
         <p className="text-gray-600">No matching products.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="min-w-full bg-white border rounded-xl overflow-hidden">
+          <table className="min-w-full bg-white border rounded-xl overflow-hidden text-black">
             <thead>
               <tr className="bg-gray-800 text-white">
                 <th className="text-left px-4 py-2">Name</th>
@@ -188,18 +186,18 @@ const DashboardPage = () => {
             <tbody>
               {filteredProducts.map((product) => (
                 <tr key={product.id} className="border-t hover:bg-gray-100">
-                  <td className="text-black px-4 py-2">{product.name}</td>
-                  <td className="text-black px-4 py-2">{product.description}</td>
+                  <td className="px-4 py-2">{product.name}</td>
+                  <td className="px-4 py-2">{product.description}</td>
                   <td className="px-4 py-2">
                     <input
                       type="number"
                       value={editedQuantities[product.id] ?? product.quantity}
                       onChange={(e) => handleQuantityChange(product.id, e.target.value)}
-                      className="w-20 px-2 py-1 border rounded"
+                      className="w-20 px-2 py-1 border rounded text-black"
                     />
                   </td>
-                  <td className="text-black px-4 py-2">{product.qr_code}</td>
-                  <td className="text-black px-4 py-2">P{product.price}</td>
+                  <td className="px-4 py-2">{product.qr_code}</td>
+                  <td className="px-4 py-2">P{product.price}</td>
                   <td className="px-4 py-2 space-x-2">
                     <button
                       onClick={() => navigate(`/product/id/${product.id}`)}
@@ -208,7 +206,7 @@ const DashboardPage = () => {
                       View
                     </button>
                     <button
-                      onClick={() => handleViewHistory(product.id)}
+                      onClick={() => handleViewHistory(product.qr_code)}
                       className="text-purple-600 hover:underline"
                     >
                       History
@@ -233,9 +231,9 @@ const DashboardPage = () => {
       )}
 
       {/* 🔍 Stock History Modal */}
-      {selectedProductId && (
+      {selectedProductQr && (
         <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto text-black">
             <h2 className="text-2xl font-bold mb-4">Stock History</h2>
             <table className="w-full text-sm">
               <thead>
@@ -263,7 +261,7 @@ const DashboardPage = () => {
             </table>
             <div className="mt-4 text-right">
               <button
-                onClick={() => setSelectedProductId(null)}
+                onClick={() => setSelectedProductQr(null)}
                 className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
               >
                 Close

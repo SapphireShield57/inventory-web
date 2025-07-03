@@ -1,4 +1,3 @@
-// Keep the top imports the same
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -12,6 +11,8 @@ const DashboardPage = () => {
   const [editedQuantities, setEditedQuantities] = useState({});
   const [selectedCategory, setSelectedCategory] = useState("");
   const [totalStock, setTotalStock] = useState(0);
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [stockHistory, setStockHistory] = useState([]);
 
   const navigate = useNavigate();
 
@@ -72,6 +73,19 @@ const DashboardPage = () => {
       if (keywords.some((kw) => lower.includes(kw))) return category;
     }
     return "Other";
+  };
+
+  const handleViewHistory = (productId) => {
+    axios
+      .get(`https://backend-bjq5.onrender.com/inventory/product/${productId}/history/`)
+      .then((res) => {
+        setStockHistory(res.data);
+        setSelectedProductId(productId);
+      })
+      .catch((err) => {
+        console.error("Failed to fetch history", err);
+        alert("Could not fetch stock history.");
+      });
   };
 
   const filteredProducts = [...products]
@@ -172,12 +186,18 @@ const DashboardPage = () => {
                   </td>
                   <td className="text-black px-4 py-2">{product.qr_code}</td>
                   <td className="text-black px-4 py-2">P{product.price}</td>
-                  <td className="px-4 py-2">
+                  <td className="px-4 py-2 space-x-2">
                     <button
                       onClick={() => navigate(`/product/id/${product.id}`)}
                       className="text-blue-600 hover:underline"
                     >
                       View
+                    </button>
+                    <button
+                      onClick={() => handleViewHistory(product.id)}
+                      className="text-purple-600 hover:underline"
+                    >
+                      History
                     </button>
                   </td>
                 </tr>
@@ -195,6 +215,47 @@ const DashboardPage = () => {
               </button>
             </div>
           )}
+        </div>
+      )}
+
+      {/* 🔍 Stock History Modal */}
+      {selectedProductId && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex justify-center items-center z-50">
+          <div className="bg-white rounded-lg shadow-lg p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-4">Stock History</h2>
+            <table className="w-full text-sm">
+              <thead>
+                <tr>
+                  <th className="text-left py-2">Type</th>
+                  <th className="text-left py-2">Qty</th>
+                  <th className="text-left py-2">Timestamp</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stockHistory.length === 0 ? (
+                  <tr>
+                    <td colSpan="3" className="py-2 text-center text-gray-500">No history yet.</td>
+                  </tr>
+                ) : (
+                  stockHistory.map((entry) => (
+                    <tr key={entry.id}>
+                      <td className="py-1">{entry.change_type}</td>
+                      <td className="py-1">{entry.quantity_changed}</td>
+                      <td className="py-1">{new Date(entry.timestamp).toLocaleString()}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+            <div className="mt-4 text-right">
+              <button
+                onClick={() => setSelectedProductId(null)}
+                className="bg-gray-700 text-white px-4 py-2 rounded hover:bg-gray-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

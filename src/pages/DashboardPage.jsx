@@ -18,7 +18,7 @@ const DashboardPage = () => {
 
   const categoryMap = {
     "Fastening Tools": ["screwdriver", "screw", "riveter", "hex", "allen"],
-    "Striking Tools": ["hammer", "mallet", "pry bar", "chisel"],
+    "Striking Tools": ["hammer", "mallet", "pry bar", "chisel", "crowbar"],
     "Finishing Tools": ["sanding", "sharpening", "brush", "steel file"],
   };
 
